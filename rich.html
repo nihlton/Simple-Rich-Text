@@ -1,0 +1,167 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <title>rich text editing</title>
+        <style>
+            * {box-sizing: border-box; font-family: "Gill Sans", "Gill Sans MT", Calibri, sans-serif;}
+            body, html {margin: 0; padding: 0; box-sizing: border-box; font-size: 20px;}
+            body { background-image: url('http://i.imgur.com/cMY7r36.png')}
+            
+            #editMe { width: 100vw; height: 100vh; padding: 2rem; color: #333; }
+            
+            *[contenteditable] { 
+                cursor: text;
+                white-space: pre-line;
+                outline: none;
+                -webkit-user-modify: read-write-plaintext-only;
+                -moz-user-modify: read-write-plaintext-only;
+                -ms-user-modify: read-write-plaintext-only;
+                -o-user-modify: read-write-plaintext-only;
+                user-modify: read-write-plaintext-only; 
+            }
+        </style>
+    </head>
+    <body>
+        <div id="editMe" contenteditable=""><big><big>rich text editing
+</big></big>
+so this probably works  a little different than you're expecting.
+
+normally, you'd [ ctrl ] + [ b ] to make something <strong>bold</strong>.  
+then you'd [ ctrl ] + [ b ] again to make it not bold.  
+<strong></strong><em>that wont work here. </em>You still bold the same way, but
+you can't un-bold.  You hafta clear the style entirely.
+<em>
+</em>You clear style on text with [ ctrl ] + [ Q ].  Also, <strike>strike </strike>is
+[ ctrl ] + [ Y ], which doesn't make a lot of sense, but 
+[ ctrl ] + [ S ] is save so .. here we are.
+
+Mac users, try [command] instead of [ctrl].
+
+    [ ctrl ] + [ I ] for <em>italic</em>
+    
+    [ ctrl ] + [ B ] for <strong>bold</strong>
+    
+    [ ctrl ] + [ Y ] for <strike>strike</strike>
+    
+    [ ctrl ] + [ U ] for <u>underline</u>
+    
+    [ ctrl ] + [ up arrow ] for <big>big</big>
+    
+    [ ctrl ] + [ down arrow ] for <small>small</small>
+    
+    [ ctrl ] + [ Q ] to clear styles.
+    
+    [ ctrl ] + [ Z ] to undo.
+    
+    
+Offline editing:  save this page to your machine, and open 
+the saved version.  you can pick up where you left off.
+
+
+
+    </div>
+        
+        
+        <script>
+            var editElement = document.getElementById( "editMe" );
+            var killEvent = function( e ) {
+                e.preventDefault();
+                e.stopImmediatePropagation();
+                e.stopPropagation();
+            }
+            
+            var addUndo = function( element ){
+                element.undo = element.undo || [];
+                if( element.innerHTML !== element.undo[element.undo.length - 1] ){ element.undo.push( element.innerHTML )}
+            }
+            
+            var handleKey = function( eventObj ) {
+                var tag = false;
+                var kill = false;
+                
+                addUndo( editElement );
+                
+                if( eventObj.ctrlKey || ( eventObj.metaKey  && !eventObj.ctrlKey )){
+                    if( eventObj.key === 'u' ){ tag = 'u'; }
+                    if( eventObj.key === 'i' ){ tag = 'em'; }
+                    if( eventObj.key === 'b' ){ tag = 'strong'; }
+                    if( eventObj.key === 'y' ){ tag = 'strike'; }
+                    if( eventObj.key === 'ArrowUp' ){ tag = 'big'; }
+                    if( eventObj.key === 'ArrowDown' ){ tag = 'small'; }
+                    if( eventObj.key === 'q' ){ wrapSelection( null, editElement ); kill = true; }
+                    if( Boolean( tag )){ wrapSelection( tag, editElement ); kill = true; }
+                    if( eventObj.key === 'z' && editElement.undo.length > 1 ){ 
+                        setTimeout( function(){
+                            editElement.undo.pop(); 
+                            editElement.innerHTML = editElement.undo.pop();
+                        }, 0 );
+                        kill = true; 
+                    }
+                    return !kill ? true : killEvent( eventObj );
+                }
+            }
+        
+            var wrapSelection = function( tag, limit ) {
+                
+                var modifiedNode, range = false;
+                var sel = window.getSelection();
+                var addStyle = Boolean( tag );
+                
+                if (sel.rangeCount) {
+                    
+                    range = sel.getRangeAt(0);
+                    
+                    if( addStyle ){	//easy
+                        modifiedNode = document.createElement( tag );
+                        modifiedNode.appendChild(range.extractContents()); 
+                        range.insertNode(modifiedNode);
+                    }
+                    if( !addStyle ){ //!!!!!
+                        var leftRange = document.createRange();
+                        var middleRange = document.createRange();
+                        var rightRange = document.createRange();
+                        
+                        var leftEl = document.createElement( "div" );
+                        var middleEl = document.createElement( "div" );
+                        var rightEl = document.createElement( "div" );
+                        
+                        leftRange.setEnd( range.startContainer, range.startOffset );
+                        leftRange.setStartBefore( limit.firstChild );
+            
+                        middleRange.setEnd( range.endContainer, range.endOffset );
+                        middleRange.setStart( range.startContainer, range.startOffset );
+                        
+                        rightRange.setEndAfter( limit.lastChild );
+                        rightRange.setStart( range.endContainer, range.endOffset );
+                                    
+                        var leftFrag = leftRange.cloneContents();
+                        var middleFrag = middleRange.cloneContents();
+                        var rightFrag = rightRange.cloneContents();
+                        
+                        leftEl.appendChild(leftFrag);
+                        middleEl.appendChild(middleFrag);
+                        rightEl.appendChild(rightFrag);
+                        
+                        modifiedNode = document.createTextNode( middleEl.textContent );
+                        
+                        while( limit.firstChild ){ limit.removeChild( limit.firstChild )}
+                        while( leftEl.firstChild ){ limit.appendChild( leftEl.firstChild )}
+                        limit.appendChild( modifiedNode );
+                        while( rightEl.firstChild ){ limit.appendChild( rightEl.firstChild )}
+                        
+                        range.selectNodeContents( modifiedNode );
+                        sel.removeAllRanges();
+                        sel.addRange(range);
+                    }
+                    
+                    range.selectNodeContents(modifiedNode);
+                    sel.removeAllRanges();
+                    sel.addRange(range);
+                    range.detach();
+                }
+            }
+            
+            editElement.addEventListener( 'keydown', handleKey );
+        </script>
+    </body>
+</html>
