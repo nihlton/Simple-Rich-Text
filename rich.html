@@ -1,167 +1,216 @@
 <!DOCTYPE html>
 <html>
-    <head>
-        <title>rich text editing</title>
-        <style>
-            * {box-sizing: border-box; font-family: "Gill Sans", "Gill Sans MT", Calibri, sans-serif;}
-            body, html {margin: 0; padding: 0; box-sizing: border-box; font-size: 20px;}
-            body { background-image: url('http://i.imgur.com/cMY7r36.png')}
-            
-            #editMe { width: 100vw; height: 100vh; padding: 2rem; color: #333; }
-            
-            *[contenteditable] { 
-                cursor: text;
-                white-space: pre-line;
-                outline: none;
-                -webkit-user-modify: read-write-plaintext-only;
-                -moz-user-modify: read-write-plaintext-only;
-                -ms-user-modify: read-write-plaintext-only;
-                -o-user-modify: read-write-plaintext-only;
-                user-modify: read-write-plaintext-only; 
-            }
-        </style>
-    </head>
-    <body>
-        <div id="editMe" contenteditable=""><big><big>rich text editing
+	<head>
+		<link href="https://fonts.googleapis.com/css?family=Merriweather|Roboto" rel="stylesheet">
+		<title>rich text editing</title>
+		<style>
+			body, html {margin: 0; padding: 0; box-sizing: border-box; font-size: 16px; background: white; color: #444 }
+			
+			body { font-family: 'Roboto', sans-serif;}
+			big { font-family: 'Merriweather', serif; }
+			
+			* { box-sizing: inherit; font-family: inherit; }
+			
+			#editMe { 
+				width: 100vw; 
+				height: 100vh; 
+				padding: 2rem; 
+				line-height: 1.7em; 
+			}
+			::selection { background:#BFBFBF; color: black; }
+			*[contenteditable] { 
+				cursor: text;
+				white-space: pre-line;
+				outline: none;
+				-webkit-user-modify: read-write-plaintext-only;
+				-moz-user-modify: read-write-plaintext-only;
+				-ms-user-modify: read-write-plaintext-only;
+				-o-user-modify: read-write-plaintext-only;
+				user-modify: read-write-plaintext-only; 
+			}
+		</style>
+	</head>
+	<body>
+		<div id="editMe" contenteditable=""><big><big>rich text editing
 </big></big>
-so this probably works  a little different than you're expecting.
+[ CTRL ] + 
+	[ I ] for <em>italic</em>
+	[ B ] for <strong>bold</strong>
+	[ Y ] for <strike>strike</strike>
+	[ U ] for <u>underline</u>
+	[ up arrow ] for <big>big</big>
+	[ down arrow ] for <small>small</small>
+	[ Z ] to undo.
 
-normally, you'd [ ctrl ] + [ b ] to make something <strong>bold</strong>.  
-then you'd [ ctrl ] + [ b ] again to make it not bold.  
-<strong></strong><em>that wont work here. </em>You still bold the same way, but
-you can't un-bold.  You hafta clear the style entirely.
-<em>
-</em>You clear style on text with [ ctrl ] + [ Q ].  Also, <strike>strike </strike>is
-[ ctrl ] + [ Y ], which doesn't make a lot of sense, but 
-[ ctrl ] + [ S ] is save so .. here we are.
+Mac users, try [ COMMAND ] instead of [ CTRL ]
 
-Mac users, try [command] instead of [ctrl].
-
-    [ ctrl ] + [ I ] for <em>italic</em>
-    
-    [ ctrl ] + [ B ] for <strong>bold</strong>
-    
-    [ ctrl ] + [ Y ] for <strike>strike</strike>
-    
-    [ ctrl ] + [ U ] for <u>underline</u>
-    
-    [ ctrl ] + [ up arrow ] for <big>big</big>
-    
-    [ ctrl ] + [ down arrow ] for <small>small</small>
-    
-    [ ctrl ] + [ Q ] to clear styles.
-    
-    [ ctrl ] + [ Z ] to undo.
-    
-    
-Offline editing:  save this page to your machine, and open 
-the saved version.  you can pick up where you left off.
+Offline editing:  save this page to your device, and open the saved version.  you can pick up where you left off.
 
 
+</div>
+	</body>
+	
+	<script>
+		var editElement = document.getElementById( "editMe" );
+		var killEvent = function( e ) { e.preventDefault(); e.stopPropagation(); }
+		var objEquals = function( o1, o2 ){ return JSON.stringify(o1) === JSON.stringify(o2) }
+		
+		var addUndo = function( element ){
+			var lastUndo;
+			var selectionDetails = getSelectionDetails( element );
+			var undoItem = { content: element.innerHTML, selection: selectionDetails }
 
-    </div>
-        
-        
-        <script>
-            var editElement = document.getElementById( "editMe" );
-            var killEvent = function( e ) {
-                e.preventDefault();
-                e.stopImmediatePropagation();
-                e.stopPropagation();
-            }
-            
-            var addUndo = function( element ){
-                element.undo = element.undo || [];
-                if( element.innerHTML !== element.undo[element.undo.length - 1] ){ element.undo.push( element.innerHTML )}
-            }
-            
-            var handleKey = function( eventObj ) {
-                var tag = false;
-                var kill = false;
-                
-                addUndo( editElement );
-                
-                if( eventObj.ctrlKey || ( eventObj.metaKey  && !eventObj.ctrlKey )){
-                    if( eventObj.key === 'u' ){ tag = 'u'; }
-                    if( eventObj.key === 'i' ){ tag = 'em'; }
-                    if( eventObj.key === 'b' ){ tag = 'strong'; }
-                    if( eventObj.key === 'y' ){ tag = 'strike'; }
-                    if( eventObj.key === 'ArrowUp' ){ tag = 'big'; }
-                    if( eventObj.key === 'ArrowDown' ){ tag = 'small'; }
-                    if( eventObj.key === 'q' ){ wrapSelection( null, editElement ); kill = true; }
-                    if( Boolean( tag )){ wrapSelection( tag, editElement ); kill = true; }
-                    if( eventObj.key === 'z' && editElement.undo.length > 1 ){ 
-                        setTimeout( function(){
-                            editElement.undo.pop(); 
-                            editElement.innerHTML = editElement.undo.pop();
-                        }, 0 );
-                        kill = true; 
-                    }
-                    return !kill ? true : killEvent( eventObj );
-                }
-            }
-        
-            var wrapSelection = function( tag, limit ) {
-                
-                var modifiedNode, range = false;
-                var sel = window.getSelection();
-                var addStyle = Boolean( tag );
-                
-                if (sel.rangeCount) {
-                    
-                    range = sel.getRangeAt(0);
-                    
-                    if( addStyle ){	//easy
-                        modifiedNode = document.createElement( tag );
-                        modifiedNode.appendChild(range.extractContents()); 
-                        range.insertNode(modifiedNode);
-                    }
-                    if( !addStyle ){ //!!!!!
-                        var leftRange = document.createRange();
-                        var middleRange = document.createRange();
-                        var rightRange = document.createRange();
-                        
-                        var leftEl = document.createElement( "div" );
-                        var middleEl = document.createElement( "div" );
-                        var rightEl = document.createElement( "div" );
-                        
-                        leftRange.setEnd( range.startContainer, range.startOffset );
-                        leftRange.setStartBefore( limit.firstChild );
-            
-                        middleRange.setEnd( range.endContainer, range.endOffset );
-                        middleRange.setStart( range.startContainer, range.startOffset );
-                        
-                        rightRange.setEndAfter( limit.lastChild );
-                        rightRange.setStart( range.endContainer, range.endOffset );
-                                    
-                        var leftFrag = leftRange.cloneContents();
-                        var middleFrag = middleRange.cloneContents();
-                        var rightFrag = rightRange.cloneContents();
-                        
-                        leftEl.appendChild(leftFrag);
-                        middleEl.appendChild(middleFrag);
-                        rightEl.appendChild(rightFrag);
-                        
-                        modifiedNode = document.createTextNode( middleEl.textContent );
-                        
-                        while( limit.firstChild ){ limit.removeChild( limit.firstChild )}
-                        while( leftEl.firstChild ){ limit.appendChild( leftEl.firstChild )}
-                        limit.appendChild( modifiedNode );
-                        while( rightEl.firstChild ){ limit.appendChild( rightEl.firstChild )}
-                        
-                        range.selectNodeContents( modifiedNode );
-                        sel.removeAllRanges();
-                        sel.addRange(range);
-                    }
-                    
-                    range.selectNodeContents(modifiedNode);
-                    sel.removeAllRanges();
-                    sel.addRange(range);
-                    range.detach();
-                }
-            }
-            
-            editElement.addEventListener( 'keydown', handleKey );
-        </script>
-    </body>
+			element.undo = (element.undo || []).length ? element.undo : [undoItem];
+			lastUndo = element.undo[element.undo.length - 1];
+			var selectionChanged = undoItem.content === lastUndo.content && !objEquals( undoItem.selection, lastUndo.selection );
+			var contentChanged = undoItem.content !== lastUndo.content;
+			if( selectionChanged ){ element.undo[element.undo.length - 1] = undoItem }
+			if( contentChanged ){ element.undo.push( undoItem ) }
+		}
+		
+		var restoreUndo = function( element ){
+			var undoState = editElement.undo.pop();
+			editElement.innerHTML = undoState.content;
+			setTimeout( function(){ restoreSelection( undoState.selection, element )}, 0 );
+		}
+		
+		var restoreSelection = function( selectionDetails, limit ){
+			var newRange = document.createRange();
+			var startEl = getNodeByCoordinates( limit, selectionDetails.startContainer );
+			var endEl = getNodeByCoordinates( limit, selectionDetails.endContainer );
+			if( startEl && endEl ){
+				newRange.setStart( startEl, selectionDetails.startOffset );
+				newRange.setEnd( endEl, selectionDetails.endOffset );
+				var sel = window.getSelection();
+				sel.removeAllRanges();
+				sel.addRange(newRange);
+			}
+			newRange.detach();
+		}
+		
+		var handleKey = function( eventObj ) {
+			var keyTag = { 'u': 'u', 'i': 'em', 'b': 'strong', 'y': 'strike', 'ArrowUp': 'big', 'ArrowDown': 'small' }
+			var isCommandKey = eventObj.metaKey && !eventObj.ctrlKey && !eventObj.shiftKey && !eventObj.altKey;
+			var isCtrlKey = eventObj.ctrlKey && !eventObj.shiftKey && !eventObj.metaKey && !eventObj.altKey;
+			var isAltKey = eventObj.altKey && !eventObj.shiftKey && !eventObj.ctrlKey && !eventObj.metaKey;
+			var kill = false;
+			
+			addUndo( editElement );
+			
+			if( isCommandKey || isCtrlKey || isAltKey ){
+				if( Boolean( keyTag[ eventObj.key ])){ wrapSelection( keyTag[ eventObj.key ], editElement ); kill = true; }
+				if( eventObj.key === 'z' && editElement.undo.length > 1 ){ 
+					setTimeout( function(){
+						editElement.undo.pop(); 
+						restoreUndo( editElement );
+					}, 0 );
+					kill = true; 
+				}
+				return !kill ? true : killEvent( eventObj );
+			}
+		}
+		
+		var removeEmptyTags = function( htmlString ) {
+			var firstOp = htmlString.replace(/<[^\/>][^>]*><\/[^>]+>/gim, '').replace(/<\/([^\/>][^>]*)\b[^>]*><\1>/gim, '');
+			var secondOp = firstOp.replace(/<[^\/>][^>]*><\/[^>]+>/gim, '').replace(/<\/([^\/>][^>]*)\b[^>]*><\1>/gim, '');
+			return firstOp === secondOp ? firstOp : removeEmptyTags( secondOp );
+		}
+		
+		var getSelectionContent = function( range ){
+			var el = document.createElement( "div" );
+			el.appendChild( range.cloneContents() );
+			return el;
+		}
+		
+		var getParentByTagName = function(node, tagname, limit) {
+			if ( !node || !tagname){ return }
+			tagname = tagname.toUpperCase();
+			while (node.tagName !== "HTML" && node !== limit ) {
+				if (node.tagName === tagname) { return node;}
+				node = node.parentNode;
+			}
+			return false;
+		}
+		
+		var removeAll = function( element, tag ){
+			while(element.querySelectorAll(tag).length){
+				thisNode = element.querySelectorAll(tag)[0];
+				while( thisNode.firstChild ){ thisNode.parentNode.insertBefore( thisNode.firstChild, thisNode )}
+				thisNode.parentNode.removeChild( thisNode );
+			}
+		}
+		
+		var getNodeByCoordinates = function( node, coords ){
+			var currentNode = node;
+			if( !coords || !coords.length ){ return node }
+			for( var x of coords ){currentNode = currentNode.childNodes[x]}
+			return currentNode;
+		}
+		
+		var getNodeCoordinates = function ( node, limit ){
+			var coords = [];
+			while( node !== limit && node.parentNode ){
+				var siblings = [].slice.call(node.parentNode.childNodes);
+				var childIndex = siblings.indexOf(node)
+				if( childIndex !== -1 ){coords.push(childIndex)}
+				node = node.parentNode;
+			}
+			return coords.reverse();
+		}
+		
+		var wrapSelection = function( tag, limit ) {
+			var modifiedNode, oldOuter, newOuter, changeScope;
+			var sel = window.getSelection();
+			
+			if (sel.rangeCount) {
+				var range = sel.getRangeAt(0);
+				var selContent = getSelectionContent( range );
+				var containsTag = Boolean(selContent.querySelector(tag));
+				var isChildOfTag = Boolean(getParentByTagName(range.commonAncestorContainer, tag, limit))
+				
+				if( containsTag || isChildOfTag ){ 
+					removeAll( selContent, tag ); 
+					range.extractContents();
+					range.insertNode(selContent);
+					changeScope = selContent.parentElement === limit ? "innerHTML" : "outerHTML";
+					oldOuter = selContent.outerHTML;
+					newOuter = containsTag ? selContent.innerHTML : "</" + tag + ">" + selContent.innerHTML + "<" + tag + ">";
+					selContent.parentElement[changeScope] = selContent.parentElement[changeScope].replace( oldOuter , newOuter );
+					limit.innerHTML = removeEmptyTags( limit.innerHTML );
+					sel.removeAllRanges();
+				}
+				if( !containsTag && !isChildOfTag ){
+					modifiedNode = document.createElement( tag );
+					modifiedNode.appendChild(range.extractContents()); 
+					range.insertNode(modifiedNode);
+					range.selectNodeContents(modifiedNode);
+					sel.removeAllRanges();
+					sel.addRange(range);
+				}
+				
+				range.detach();
+				
+				return;
+			}
+		}
+		
+		var getSelectionDetails = function( element ){
+			var sel = window.getSelection();
+			var details = {};
+			if (sel.rangeCount) {
+				var range = sel.getRangeAt(0);
+				details = {
+					startContainer: getNodeCoordinates( range.startContainer, element ),
+					startOffset: range.startOffset,
+					endContainer: getNodeCoordinates( range.endContainer, element ),
+					endOffset: range.endOffset,
+				}
+			}
+			return details;
+		}
+		
+		editElement.addEventListener( 'keydown', handleKey );
+		
+	</script>
 </html>
+		
